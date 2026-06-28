@@ -84,7 +84,7 @@ module.exports = {
 
     if (totalPages <= 1) return;
 
-    const collector = response.createMessageComponentCollector({ time: 120000 });
+    const collector = reply.createMessageComponentCollector({ time: 120000 });
 
     collector.on('collect', async (btn) => {
       if (btn.user.id !== interaction.user.id) {

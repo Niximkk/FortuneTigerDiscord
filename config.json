@@ -7,7 +7,7 @@
     "initialBalance": 0
   },
   "slot": {
-    "featureBaseChance": 0.006,
+    "featureBaseChance": 0.0066,
     "fullScreenMultiplier": 2,
     "respinTargetChance": 0.30,
     "respinWildChance": 0.35,

@@ -1,7 +1,6 @@
 const {
   SlashCommandBuilder,
   ContainerBuilder,
-  TextDisplayBuilder,
   MessageFlags,
 } = require('discord.js');
 const versionData = require('../version.json');

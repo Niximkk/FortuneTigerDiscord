@@ -65,8 +65,9 @@ module.exports = {
         db.updateBalance(senderId, -amount);
         db.updateBalance(target.id, amount);
       });
+      console.log(`[Pay] ${interaction.user.tag} → ${target.tag}: R$ ${amount}`);
     } catch (error) {
-      console.error('[Pay] Erro na transação:', error);
+      console.error(`[Pay] Erro: ${error.message}`);
 
       const container = new ContainerBuilder()
         .setAccentColor(0xff4444)

@@ -147,19 +147,6 @@ async function startAudio(guild, voiceChannel, audioPath) {
   return { connection, player, subscription };
 }
 
-function stopAudio(handle) {
-  if (!handle) return false;
-  const { connection, player, subscription } = handle;
-  try { player.stop(); } catch {}
-  try { subscription.unsubscribe(); } catch {}
-  try { connection.destroy(); } catch {}
-  return true;
-}
-
-function getActiveConnectionCount() {
-  return activeConnections.size;
-}
-
 async function playCardSong(guild, voiceChannel) {
   const audioPath = path.resolve(config.audio.cardSongFile);
   return startAudio(guild, voiceChannel, audioPath);
@@ -211,4 +198,4 @@ async function switchToBigWin(handle) {
   });
 }
 
-module.exports = { playBigWinSound, playCardSong, stopAudio, switchToBigWin, getActiveConnectionCount };
+module.exports = { playBigWinSound, playCardSong, switchToBigWin };

@@ -53,6 +53,7 @@ module.exports = {
 
     db.updateBalance(userId, reward);
     db.setCooldown(userId, 'lastWork', now);
+    console.log(`[Work] ${interaction.user.tag} recebeu R$ ${reward}`);
 
     const message = workMessages[Math.floor(Math.random() * workMessages.length)];
 

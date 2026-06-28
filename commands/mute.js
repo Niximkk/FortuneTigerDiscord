@@ -11,6 +11,7 @@ module.exports = {
     const muted = !user.muted;
 
     db.setMuted(userId, muted);
+    console.log(`[Mute] ${interaction.user.tag}: ${muted ? 'desativou' : 'ativou'} o som`);
 
     const container = new ContainerBuilder()
       .setAccentColor(muted ? 0xff4444 : 0x00ff88)

@@ -10,16 +10,6 @@ const emojis = {
   x10: '<:x10:1520541230314946660>',
 };
 
-const slotEmojis = [
-  emojis.Wild,
-  emojis.ObjetosDourados,
-  emojis.SacoDeMoedas,
-  emojis.JoiasVerdes,
-  emojis.FogosDeArtificio,
-  emojis.CartasDeMoedas,
-  emojis.Laranja,
-];
-
 const ui = {
   profile: '<:profile:1520681770490789988>',
   less: '<:less:1520681715536760912>',
@@ -28,4 +18,4 @@ const ui = {
   autospin: '<:AutoSpin:1520681683198808185>',
 };
 
-module.exports = { emojis, slotEmojis, ui };
+module.exports = { emojis, ui };

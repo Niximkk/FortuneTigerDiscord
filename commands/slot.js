@@ -103,6 +103,10 @@ function buildGridRows(grid, winPosSet, enabled) {
       const cell = grid[r][c];
       const key = `${c},${r}`;
       const isWin = winPosSet && winPosSet.has(key);
+      if (!cell) {
+        btns.push(new ButtonBuilder().setCustomId(`cell_${r}_${c}`).setLabel('·').setStyle(ButtonStyle.Secondary).setDisabled(true));
+        continue;
+      }
       btns.push(
         new ButtonBuilder()
           .setCustomId(`cell_${r}_${c}`)
@@ -232,7 +236,7 @@ async function animateFeature(interaction, bet, targetSymbolObj) {
   let totalWin = evalResult.totalWin;
   const winningLines = evalResult.winningLines;
   const isFull = states[states.length - 1].isFull;
-  if (isFull) totalWin *= 10;
+  if (isFull) totalWin *= config.slot.fullScreenMultiplier;
   const winPosSet = getWinningPositionsSet(winningLines);
   return { grid: finalGrid, totalWin: Math.round(totalWin * 100) / 100, winningLines, featureActive: true, fullScreenX10: isFull, respinCount: states.length - 1, targetSymbol: targetSymbolObj.id, winPosSet, bet };
 }
@@ -358,13 +362,14 @@ async function handleSlotSpin(interaction, bet, autospinRemaining) {
 
   if (featureTriggered) {
     const targetSymbol = pickTargetSymbol();
+    console.log(`[Slot] ${interaction.user.tag} | FEATURE | alvo=${targetSymbol.id}`);
     try {
       const member = !user.muted ? await interaction.guild.members.fetch(interaction.user.id) : null;
       if (member?.voice?.channel) {
         featureAudioHandle = await playCardSong(interaction.guild, member.voice.channel);
       }
     } catch (err) {
-      console.error('[Slot] Erro ao iniciar card_song:', err.message);
+      console.error(`[Slot] card_song erro: ${err.message}`);
     }
     result = await animateFeature(interaction, bet, targetSymbol);
     result.isBigWin = result.totalWin >= (result.bet || bet) * config.audio.bigWinThreshold || result.fullScreenX10;
@@ -375,6 +380,10 @@ async function handleSlotSpin(interaction, bet, autospinRemaining) {
   }
 
   const isBigWin = result.isBigWin;
+  const tag = interaction.user.tag;
+  const winLabel = isBigWin ? 'BIGWIN' : result.totalWin > 0 ? 'WIN' : 'LOSS';
+  const featLabel = result.featureActive ? ` feat=${result.respinCount}r` : '';
+  console.log(`[Slot] ${tag} | $${bet} → ${winLabel} $${result.totalWin}${featLabel}`);
 
   const updatedUser = db.getUser(userId);
   db.updateBalance(userId, result.totalWin);
@@ -401,7 +410,7 @@ async function handleSlotSpin(interaction, bet, autospinRemaining) {
         const member = await interaction.guild.members.fetch(interaction.user.id);
         if (member?.voice?.channel) {
           if (result.featureActive && featureAudioHandle) {
-            await switchToBigWin(interaction.guild, member.voice.channel);
+            await switchToBigWin(featureAudioHandle);
           } else {
             await playBigWinSound(interaction.guild, member.voice.channel);
           }
@@ -413,17 +422,19 @@ async function handleSlotSpin(interaction, bet, autospinRemaining) {
   }
 
   if (isBigWin) {
-    await new Promise((r) => { bigWinTimeout = setTimeout(r, 5000); });
+    await new Promise((r) => setTimeout(r, 5000));
     try {
       const { comps: ec } = buildMessageComponents(result, bet, db.getUser(userId).balance, false, autoLabel, minimized);
       await interaction.editReply({ components: ec, flags: MessageFlags.IsComponentsV2 });
     } catch {}
   }
 
-  // === Autospin loop (old code style - NO collector during loop) ===
+  // === Autospin loop ===
   if (isAuto) {
+    console.log(`[Auto] ${tag} | ${autospinRemaining}/${autospinRemaining} restantes`);
     if (!autospinUsers.has(userId)) {
-      // Parado pelo usuário: reabilita + setupResultCollector (nova funcionalidade)
+      console.log(`[Auto] ${tag} | Parado pelo usuário`);
+      // Parado pelo usuário: reabilita + setupResultCollector
       try {
         const { comps: nc } = buildMessageComponents(result, bet, db.getUser(userId).balance, false, undefined, minimized);
         await interaction.editReply({ components: nc, flags: MessageFlags.IsComponentsV2 });
@@ -431,8 +442,10 @@ async function handleSlotSpin(interaction, bet, autospinRemaining) {
       return setupResultCollector(interaction, userId, result, bet, minimized, minimizeTimeout, null);
     }
     if (autospinRemaining > 1) {
+      console.log(`[Auto] ${tag} | ${autospinRemaining - 1} restantes`);
       await new Promise((r) => setTimeout(r, 1500));
       if (!autospinUsers.has(userId)) {
+        console.log(`[Auto] ${tag} | Parado durante delay`);
         try {
           const { comps: nc } = buildMessageComponents(result, bet, db.getUser(userId).balance, false, undefined, minimized);
           await interaction.editReply({ components: nc, flags: MessageFlags.IsComponentsV2 });
@@ -443,6 +456,7 @@ async function handleSlotSpin(interaction, bet, autospinRemaining) {
     }
     // Último giro do autospin
     autospinUsers.delete(userId);
+    console.log(`[Auto] ${tag} | Concluído`);
     try {
       const { comps: nc } = buildMessageComponents(result, bet, db.getUser(userId).balance, false, undefined, minimized);
       await interaction.editReply({ components: nc, flags: MessageFlags.IsComponentsV2 });
@@ -473,6 +487,7 @@ async function handleAutospinModal(modalInteraction) {
 
   autospinUsers.set(modalInteraction.user.id, true);
   await modalInteraction.deferUpdate();
+  console.log(`[Auto] ${modalInteraction.user.tag} | Iniciado: ${count}x R$ ${bet}`);
   await handleSlotSpin(originalInteraction, bet, count);
 }
 

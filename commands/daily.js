@@ -49,6 +49,7 @@ module.exports = {
     db.updateBalance(userId, reward);
     db.setCooldown(userId, 'lastDaily', now);
     db.setDailyStreak(userId, streak);
+    console.log(`[Daily] ${interaction.user.tag} recebeu R$ ${reward} | streak=${streak}`);
 
     const nextClaim = new Date(now + cooldown);
 

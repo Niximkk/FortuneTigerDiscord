@@ -6,7 +6,6 @@ let db;
 
 function initDatabase() {
   db = new Database(dbPath);
-
   db.pragma('journal_mode = WAL');
 
   db.exec(`
@@ -23,6 +22,7 @@ function initDatabase() {
     db.exec('ALTER TABLE users ADD COLUMN muted INTEGER NOT NULL DEFAULT 0');
   } catch {}
 
+  console.log(`[DB] Banco pronto: ${dbPath}`);
   return db;
 }
 
@@ -37,10 +37,13 @@ function getUser(userId) {
 }
 
 function createUserIfNotExists(userId) {
+  const existing = getUser(userId);
+  if (existing) return existing;
   const stmt = getDb().prepare(
-    'INSERT OR IGNORE INTO users (userId, balance) VALUES (?, 0)'
+    'INSERT INTO users (userId, balance) VALUES (?, 0)'
   );
   stmt.run(userId);
+  console.log(`[DB] Novo usuário: ${userId}`);
   return getUser(userId);
 }
 
@@ -49,6 +52,8 @@ function updateBalance(userId, amount) {
     'UPDATE users SET balance = balance + ? WHERE userId = ?'
   );
   stmt.run(amount, userId);
+  const newBal = getUser(userId).balance;
+  console.log(`[DB] ${userId}: ${amount >= 0 ? '+' : ''}${amount} → ${newBal}`);
 }
 
 function setCooldown(userId, field, timestamp) {
@@ -73,6 +78,7 @@ function setMuted(userId, muted) {
     'UPDATE users SET muted = ? WHERE userId = ?'
   );
   stmt.run(muted ? 1 : 0, userId);
+  console.log(`[DB] ${userId}: mute=${muted}`);
 }
 
 function getTopUsers(limit = 10) {

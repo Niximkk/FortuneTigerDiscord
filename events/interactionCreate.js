@@ -4,6 +4,12 @@ const { autospinUsers, handleAutospinModal } = require('../commands/slot');
 module.exports = {
   name: Events.InteractionCreate,
   async execute(interaction) {
+    if (interaction.isChatInputCommand()) {
+      const tag = interaction.user.tag;
+      const opts = interaction.options.data.map(o => `${o.name}=${o.value}`).join(' ');
+      console.log(`[Cmd] /${interaction.commandName} por ${tag} (${interaction.user.id})${opts ? ` | ${opts}` : ''}`);
+    }
+
     // Durante autospin: autospin → parar (remove do map); outros → shield
     if (interaction.isButton() && autospinUsers.has(interaction.user.id)) {
       if (interaction.customId.startsWith('autospin_')) {
@@ -27,7 +33,7 @@ module.exports = {
       try {
         await command.execute(interaction);
       } catch (error) {
-        console.error(`[Bot] Erro no comando ${interaction.commandName}:`, error);
+        console.error(`[Cmd] ERRO /${interaction.commandName}:`, error);
         const reply = { content: 'Ocorreu um erro ao executar este comando. Tente novamente.', ephemeral: true };
         if (interaction.replied || interaction.deferred) await interaction.followUp(reply).catch(() => {});
         else await interaction.reply(reply).catch(() => {});
