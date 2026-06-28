@@ -176,11 +176,10 @@ function buildMessageComponents(result, bet, balance, disabled, autospinRemainin
     container.addTextDisplayComponents((td) => td.setContent(actualTitle));
     container.addSeparatorComponents((s) => s);
     container.addTextDisplayComponents((td) => td.setContent(`${ui.profile} Saldo: ${formatCurrency(balance)}`));
-    if (result.totalWin > 0) container.addTextDisplayComponents((td) => td.setContent(`📈 Ganho: **${formatCurrency(result.totalWin)}**`));
-    else container.addTextDisplayComponents((td) => td.setContent(`📈 Ganho: ${formatCurrency(0)}`));
-    const loss = Math.max(0, bet - result.totalWin);
-    if (loss > 0) container.addTextDisplayComponents((td) => td.setContent(`📉 Perda: **${formatCurrency(loss)}**`));
-    else container.addTextDisplayComponents((td) => td.setContent(`📉 Perda: ${formatCurrency(0)}`));
+    const net = result.totalWin - bet;
+    if (net > 0) { container.addTextDisplayComponents((td) => td.setContent(`📈 Ganho: **${formatCurrency(net)}**`)); }
+    else if (net < 0) { container.addTextDisplayComponents((td) => td.setContent(`📉 Perda: **${formatCurrency(Math.abs(net))}**`)); }
+    else { container.addTextDisplayComponents((td) => td.setContent(`➖ Resultado: ${formatCurrency(0)}`)); }
     container.addSeparatorComponents((s) => s);
     container.addActionRowComponents(() => buildActionRow(bet, true));
     return { comps: [container], gifName: null };
