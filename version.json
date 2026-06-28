@@ -1,0 +1,44 @@
+{
+  "currentVersion": "1.1.0",
+  "changelogs": [
+    {
+      "version": "1.1.0",
+      "date": "2026-06-28",
+      "added": [
+        "Loading screen com URLs externas e spoiler para cache de assets",
+        "Timer de inatividade com auto-delete em 60s e aviso de 10s com timestamp",
+        "Timer de minimizar com auto-delete em 10s",
+        "Comando /changelog para visualizar alterações"
+      ],
+      "fixed": [
+        "Grid do lobby não mudava ao alterar aposta (+/-)",
+        "Botão de sair não funcionava no lobby",
+        "Payout da feature não era calculado (faltava campo payout)",
+        "Bug no autospin que impedia botões de funcionarem após parada",
+        "FullScreenMultiplier hardcoded de 10x movido para config como 2x"
+      ],
+      "changed": [
+        "Feature rate reduzida de 2% para 0.6% (~92.7% RTP)",
+        "respinWildChance: 0.05 → 0.35",
+        "respinTargetChance: 0.45 → 0.30",
+        "Loading screen migrado para URLs externas com setSpoiler(true)"
+      ],
+      "removed": [
+        "Dependência de arquivos locais de GIF durante o jogo"
+      ]
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-06-20",
+      "added": [
+        "Sistema completo de aposta e saldo em tempo real com SQLite",
+        "Comando /slot completo com Components V2",
+        "Feature de respins animados com cartas",
+        "Áudio de Big Win e Card Song via @discordjs/voice",
+        "Autospin com modal configurável (1-100 rodadas)",
+        "Sistema de mute por usuário",
+        "Comando /daily, /work, /pay, /saldo, /leaderboard, /db, /mute"
+      ]
+    }
+  ]
+}

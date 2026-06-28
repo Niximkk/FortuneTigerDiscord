@@ -1,0 +1,33 @@
+{
+  "currency": {
+    "name": "Créulas",
+    "symbol": "R$",
+    "minBet": 0.5,
+    "maxBet": 1000,
+    "initialBalance": 0
+  },
+  "slot": {
+    "featureBaseChance": 0.006,
+    "fullScreenMultiplier": 2,
+    "respinTargetChance": 0.30,
+    "respinWildChance": 0.35,
+    "maxRespins": 6,
+    "minRespins": 3
+  },
+  "work": {
+    "cooldownHours": 1,
+    "minReward": 10,
+    "maxReward": 100
+  },
+  "daily": {
+    "cooldownHours": 24,
+    "baseReward": 50,
+    "streakBonus": 10,
+    "maxStreakBonus": 100
+  },
+  "audio": {
+    "bigWinThreshold": 5,
+    "bigWinFile": "./assets/audio/big_win.mp3",
+    "cardSongFile": "./assets/audio/card_song.mp3"
+  }
+}
