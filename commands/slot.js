@@ -16,7 +16,7 @@ const { formatCurrency } = require('../utils/format');
 const { playBigWinSound, playCardSong, switchToBigWin } = require('../utils/voice');
 const config = require('../config.json');
 
-const RESPIN_DELAY = 1500;
+const RESPIN_DELAY = 2500;
 
 const TIPS = [
   'Win up to 2500x!',
