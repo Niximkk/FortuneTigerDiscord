@@ -43,7 +43,7 @@ module.exports = {
             td.setContent(`⏳ Você já trabalhou! Volte em **${hours}h ${minutes}min**.`),
           );
 
-        return interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+        return interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
       }
     }
 

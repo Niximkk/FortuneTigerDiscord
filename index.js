@@ -4,8 +4,10 @@ const fs = require('fs');
 const path = require('path');
 const { Client, Collection, GatewayIntentBits } = require('discord.js');
 const { initDatabase } = require('./database/db');
+const { currentVersion } = require('./version.json');
 
 initDatabase();
+console.log(`[Bot] Iniciando v${currentVersion}...`);
 
 const client = new Client({
   intents: [
@@ -46,6 +48,8 @@ for (const file of eventFiles) {
 }
 console.log(`[Bot] ${eventFiles.length} eventos carregados: ${eventFiles.map(f => f.replace('.js', '')).join(', ')}`);
 console.log('[Bot] Conectando ao Discord...');
+
+client.on('error', (err) => console.error('[Bot] Client error:', err.message));
 
 process.on('unhandledRejection', (err) => console.error('[Bot] Unhandled rejection:', err));
 

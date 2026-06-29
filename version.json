@@ -1,6 +1,29 @@
 {
-  "currentVersion": "1.1.0",
+  "currentVersion": "1.2.0",
   "changelogs": [
+    {
+      "version": "1.2.0",
+      "date": "2026-06-29",
+      "added": [
+        "client.on('error') handler para evitar crash por token expirado",
+        "Tratamento de erro 50027 no autospin com limpeza automática",
+        "Linha de dicas cicladas (30s) no lugar da linha de win vazia no lobby e resultado"
+      ],
+      "fixed": [
+        "switchToBigWin recebia guild/channel em vez do audio handle (causava crash no áudio pós-feature)",
+        "DeletionTimer não era criado após autospin — mensagens nunca eram auto-deletadas",
+        "DeletionTimer cancelado pelo collector.on('end') antes de disparar — mensagens não eram deletadas na inatividade",
+        "Altura do container variava entre lobby e resultado por falta da linha de win"
+      ],
+      "changed": [
+        "Mensagens de cooldown de /work e /daily agora são ephemeral",
+        "Delay do big win: 5s → 3s (sem call) / 5s (em call)",
+        "buildGridRows agora trata células nulas com fallback '·'"
+      ],
+      "removed": [
+        "Comando /db (importar/exportar banco)"
+      ]
+    },
     {
       "version": "1.1.0",
       "date": "2026-06-28",

@@ -30,7 +30,7 @@ module.exports = {
             td.setContent(`⏳ Volte em **${hours}h ${minutes}min** para coletar novamente.`),
           );
 
-        return interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+        return interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
       }
 
       if (elapsed > 2 * cooldown) {

@@ -18,6 +18,13 @@ const config = require('../config.json');
 
 const RESPIN_DELAY = 1500;
 
+const TIPS = [
+  'Win up to 2500x!',
+  'Respins in Fortune Tiger Feature!',
+  'x10 multiplier with full screen win!',
+];
+function nextTip() { return `*${TIPS[Math.floor(Date.now() / 30000) % TIPS.length]}*`; }
+
 const GIF_URLS = {
   'idle.gif': 'https://r2.e-z.host/4d0a0bea-60f8-44d6-9e74-3032a64a9f32/jkfl1hbp.gif',
   'wild.gif': 'https://r2.e-z.host/4d0a0bea-60f8-44d6-9e74-3032a64a9f32/8k4c80wc.gif',
@@ -54,7 +61,7 @@ class DeletionTimer {
   }
   _start() {
     this._warning = setTimeout(() => this._warn(), 50000);
-    this._delete = setTimeout(() => this._deleteNow(), 60000);
+    this._delete = setTimeout(() => this._deleteNow(), 55000);
   }
   async _warn() {
     if (this.cancelled) return;
@@ -156,6 +163,7 @@ function buildLobbyComponents(grid, bet, balance, disabled, minimized, title) {
   const winPosSet = new Set();
   for (const gr of buildGridRows(grid, winPosSet, !disabled)) container.addActionRowComponents(() => gr);
   container.addSeparatorComponents((s) => s);
+  container.addTextDisplayComponents((td) => td.setContent(nextTip()));
   container.addTextDisplayComponents((td) => td.setContent(`${ui.profile} ${formatCurrency(balance)}  |  WIN ${formatCurrency(0)}  |  ${ui.profile} ${formatCurrency(bet)}`));
   container.addSeparatorComponents((s) => s);
   container.addActionRowComponents(() => buildActionRow(bet, disabled));
@@ -195,7 +203,7 @@ function buildMessageComponents(result, bet, balance, disabled, autospinRemainin
     container.addTextDisplayComponents((td) => td.setContent(`${emojis.Carta} ${result.respinCount} giros`));
     container.addSeparatorComponents((s) => s);
   }
-  if (result.totalWin > 0) container.addTextDisplayComponents((td) => td.setContent(`**${winLabel} ${formatCurrency(result.totalWin)}**`));
+  container.addTextDisplayComponents((td) => td.setContent(result.totalWin > 0 ? `**${winLabel} ${formatCurrency(result.totalWin)}**` : nextTip()));
   container.addTextDisplayComponents((td) => td.setContent(`${ui.profile} ${formatCurrency(balance)}  |  WIN ${formatCurrency(result.totalWin)}  |  ${ui.profile} ${formatCurrency(bet)}`));
   container.addSeparatorComponents((s) => s);
   container.addActionRowComponents(() => actionRow);
@@ -331,7 +339,6 @@ function setupResultCollector(interaction, userId, result, bet, minimized, minim
     });
 
     collector.on('end', () => {
-      if (deleteTimer) deleteTimer.cancel();
       try {
         const { comps: dc } = buildMessageComponents(result, bet, db.getUser(userId).balance, true, undefined, minimized);
         interaction.editReply({ components: dc, flags: MessageFlags.IsComponentsV2 }).catch(() => {});
@@ -395,8 +402,18 @@ async function handleSlotSpin(interaction, bet, autospinRemaining) {
   const autoLabel = isAuto && autospinRemaining - 1 > 0 ? autospinRemaining - 1 : undefined;
 
   const { comps } = buildMessageComponents(result, bet, updatedUser.balance, false, autoLabel, minimized);
-  await interaction.editReply({ components: comps, flags: MessageFlags.IsComponentsV2 });
+  try {
+    await interaction.editReply({ components: comps, flags: MessageFlags.IsComponentsV2 });
+  } catch (err) {
+    if (err.code === 50027) {
+      console.log(`[Auto] ${tag} | Token expirado, parando autospin`);
+      autospinUsers.delete(userId);
+      return;
+    }
+    throw err;
+  }
 
+  let inVoice = false;
   if (isBigWin) {
     try {
       const { comps: dc } = buildMessageComponents(result, bet, updatedUser.balance, true, autoLabel, minimized);
@@ -408,6 +425,7 @@ async function handleSlotSpin(interaction, bet, autospinRemaining) {
       try {
         const member = await interaction.guild.members.fetch(interaction.user.id);
         if (member?.voice?.channel) {
+          inVoice = true;
           if (result.featureActive && featureAudioHandle) {
             await switchToBigWin(featureAudioHandle);
           } else {
@@ -421,7 +439,7 @@ async function handleSlotSpin(interaction, bet, autospinRemaining) {
   }
 
   if (isBigWin) {
-    await new Promise((r) => setTimeout(r, 5000));
+    await new Promise((r) => setTimeout(r, inVoice ? 5000 : 3000));
     try {
       const { comps: ec } = buildMessageComponents(result, bet, db.getUser(userId).balance, false, autoLabel, minimized);
       await interaction.editReply({ components: ec, flags: MessageFlags.IsComponentsV2 });
@@ -463,11 +481,9 @@ async function handleSlotSpin(interaction, bet, autospinRemaining) {
   }
 
   // === Collector setup (single spin OU após autospin terminar) ===
-  if (!isAuto) {
-    deleteTimer = new DeletionTimer(interaction, (title) =>
-      buildMessageComponents(result, bet, db.getUser(userId).balance, false, undefined, minimized, title).comps
-    );
-  }
+  deleteTimer = new DeletionTimer(interaction, (title) =>
+    buildMessageComponents(result, bet, db.getUser(userId).balance, false, undefined, minimized, title).comps
+  );
 
   setupResultCollector(interaction, userId, result, bet, minimized, minimizeTimeout, deleteTimer);
 }
@@ -487,7 +503,12 @@ async function handleAutospinModal(modalInteraction) {
   autospinUsers.set(modalInteraction.user.id, true);
   await modalInteraction.deferUpdate();
   console.log(`[Auto] ${modalInteraction.user.tag} | Iniciado: ${count}x R$ ${bet}`);
-  await handleSlotSpin(originalInteraction, bet, count);
+  try {
+    await handleSlotSpin(originalInteraction, bet, count);
+  } catch (err) {
+    console.error(`[Auto] ${modalInteraction.user.tag} | Erro: ${err.message}`);
+    autospinUsers.delete(modalInteraction.user.id);
+  }
 }
 
 module.exports = {
