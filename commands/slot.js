@@ -428,6 +428,7 @@ async function handleSlotSpin(interaction, bet, autospinRemaining) {
           inVoice = true;
           if (result.featureActive && featureAudioHandle) {
             await switchToBigWin(featureAudioHandle);
+            featureAudioHandle = null;
           } else {
             await playBigWinSound(interaction.guild, member.voice.channel);
           }
@@ -435,6 +436,16 @@ async function handleSlotSpin(interaction, bet, autospinRemaining) {
       } catch (err) {
         console.error('[Slot] Erro ao tocar big_win:', err.message);
       }
+    }
+  }
+
+  if (featureAudioHandle) {
+    try {
+      featureAudioHandle.player.stop();
+      featureAudioHandle.subscription.unsubscribe();
+      featureAudioHandle.connection.destroy();
+    } catch (err) {
+      console.error('[Slot] Erro ao parar card_song:', err.message);
     }
   }
 
