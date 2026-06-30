@@ -1,6 +1,14 @@
 {
-  "currentVersion": "1.2.1",
+  "currentVersion": "1.2.2",
   "changelogs": [
+    {
+      "version": "1.2.2",
+      "date": "2026-06-29",
+      "changed": [
+        "fullScreenMultiplier: 2x → 10x",
+        "featureBaseChance: 0.0066 → 0.00145 (RTP reajustado para ~95% com o novo multiplicador)"
+      ]
+    },
     {
       "version": "1.2.1",
       "date": "2026-06-29",
