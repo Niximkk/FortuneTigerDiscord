@@ -7,10 +7,10 @@
     "initialBalance": 0
   },
   "slot": {
-    "featureBaseChance": 0.00145,
+    "featureBaseChance": 0.0099,
     "fullScreenMultiplier": 10,
-    "respinTargetChance": 0.30,
-    "respinWildChance": 0.35,
+    "respinTargetChance": 0.47,
+    "respinWildChance": 0.03,
     "maxRespins": 6,
     "minRespins": 3
   },
@@ -26,7 +26,9 @@
     "maxStreakBonus": 100
   },
   "audio": {
-    "bigWinThreshold": 5,
+    "bigWinThreshold": 10,
+    "megaWinThreshold": 50,
+    "superMegaWinThreshold": 110,
     "bigWinFile": "./assets/audio/big_win.mp3",
     "cardSongFile": "./assets/audio/card_song.mp3"
   }

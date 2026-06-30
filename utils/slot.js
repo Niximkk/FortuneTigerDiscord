@@ -1,13 +1,13 @@
 const config = require('../config.json');
 
 const SYMBOLS = [
-  { id: 'Wild', weight: 2, payout: 250 },
-  { id: 'ObjetosDourados', weight: 3, payout: 100 },
-  { id: 'SacoDeMoedas', weight: 6, payout: 10 },
+  { id: 'Wild', weight: 1, payout: 250 },
+  { id: 'ObjetosDourados', weight: 2, payout: 100 },
+  { id: 'SacoDeMoedas', weight: 5, payout: 10 },
   { id: 'JoiasVerdes', weight: 8, payout: 25 },
-  { id: 'FogosDeArtificio', weight: 15, payout: 5 },
+  { id: 'FogosDeArtificio', weight: 16, payout: 5 },
   { id: 'CartasDeMoedas', weight: 20, payout: 8 },
-  { id: 'Laranja', weight: 30, payout: 3 },
+  { id: 'Laranja', weight: 22, payout: 3 },
 ];
 
 const PAYLINES = [
@@ -202,49 +202,17 @@ function getRespinStates(targetSymbol, maxRespins) {
 }
 
 function spin(bet) {
-  const triggerChance = config.slot.featureBaseChance;
-  const featureTriggered = Math.random() < triggerChance;
-
-  let grid;
-  let winningLines = [];
-  let totalWin = 0;
-  let featureActive = false;
-  let fullScreenX10 = false;
-  let respinCount = 0;
-  let targetSymbol = null;
-  let respinStates = null;
-
-  if (featureTriggered) {
-    featureActive = true;
-    targetSymbol = pickTargetSymbol();
-    const result = performRespins(targetSymbol, config.slot.maxRespins);
-    grid = result.grid;
-    respinCount = result.respinCount;
-    fullScreenX10 = result.isFull;
-
-    const evalResult = evaluatePaylines(grid, bet);
-    totalWin = evalResult.totalWin;
-    winningLines = evalResult.winningLines;
-
-    if (fullScreenX10) {
-      totalWin *= config.slot.fullScreenMultiplier;
-    }
-  } else {
-    const rawGrid = generateGrid();
-    const evalResult = evaluatePaylines(rawGrid, bet);
-    totalWin = evalResult.totalWin;
-    winningLines = evalResult.winningLines;
-    grid = rawGrid;
-  }
+  const rawGrid = generateGrid();
+  const evalResult = evaluatePaylines(rawGrid, bet);
 
   return {
-    grid,
-    totalWin: Math.round(totalWin * 100) / 100,
-    winningLines,
-    featureActive,
-    fullScreenX10,
-    respinCount,
-    targetSymbol: targetSymbol ? targetSymbol.id : null,
+    grid: rawGrid,
+    totalWin: Math.round(evalResult.totalWin * 100) / 100,
+    winningLines: evalResult.winningLines,
+    featureActive: false,
+    fullScreenX10: false,
+    respinCount: 0,
+    targetSymbol: null,
   };
 }
 
