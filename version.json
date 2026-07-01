@@ -1,6 +1,18 @@
 {
-  "currentVersion": "1.3.1",
+  "currentVersion": "1.3.2",
   "changelogs": [
+    {
+      "version": "1.3.2",
+      "date": "2026-07-01",
+      "changed": [
+        "Pesos dos símbolos: Laranja 22→38, Cartas 20→28, Fogos 16→12, Joias 8→6, Saco 5→4, Objetos 2→2, Wild 1→1",
+        "featureBaseChance: 0.0099 → 0.02 (~2% dos giros)",
+        "fullScreenMultiplier: 10 → 10 (mantido em 10x)",
+        "respinTargetChance: 0.47 → 0.55",
+        "respinWildChance: 0.03 → 0.12",
+        "Comando /saldo renomeado para /balance"
+      ]
+    },
     {
       "version": "1.3.1",
       "date": "2026-06-30",

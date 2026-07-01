@@ -12,6 +12,7 @@ const emojis = {
 
 const ui = {
   profile: '<:profile:1520681770490789988>',
+  bet: '<:Bet:1520682009809387560>',
   less: '<:less:1520681715536760912>',
   spinner: '<:Spinner:1520678572308566147>',
   plus: '<:Plus:1520681740060987452>',

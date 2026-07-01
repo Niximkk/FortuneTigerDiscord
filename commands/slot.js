@@ -189,7 +189,7 @@ function buildLobbyComponents(grid, bet, balance, disabled, minimized, title) {
   for (const gr of buildGridRows(grid, winPosSet, !disabled)) container.addActionRowComponents(() => gr);
   container.addSeparatorComponents((s) => s);
   container.addTextDisplayComponents((td) => td.setContent(nextTip()));
-  container.addTextDisplayComponents((td) => td.setContent(`${ui.profile} ${formatCurrency(balance)}  |  WIN ${formatCurrency(0)}  |  ${ui.profile} ${formatCurrency(bet)}`));
+  container.addTextDisplayComponents((td) => td.setContent(`${ui.profile} ${formatCurrency(balance)}  |  WIN ${formatCurrency(0)}  |  ${ui.bet} ${formatCurrency(bet)}`));
   container.addSeparatorComponents((s) => s);
   container.addActionRowComponents(() => buildActionRow(bet, disabled));
   return [container];
@@ -235,7 +235,7 @@ function buildMessageComponents(result, bet, balance, disabled, autospinRemainin
     container.addSeparatorComponents((s) => s);
   }
   container.addTextDisplayComponents((td) => td.setContent(result.totalWin > 0 ? `**${winLabel} ${formatCurrency(result.totalWin)}**` : nextTip()));
-  container.addTextDisplayComponents((td) => td.setContent(`${ui.profile} ${formatCurrency(balance)}  |  WIN ${formatCurrency(result.totalWin)}  |  ${ui.profile} ${formatCurrency(bet)}`));
+  container.addTextDisplayComponents((td) => td.setContent(`${ui.profile} ${formatCurrency(balance)}  |  WIN ${formatCurrency(result.totalWin)}  |  ${ui.bet} ${formatCurrency(bet)}`));
   container.addSeparatorComponents((s) => s);
   if (warning) {
     container.addTextDisplayComponents((td) => td.setContent(`⚠️ ${warning}`));
@@ -568,6 +568,7 @@ async function handleAutospinModal(modalInteraction) {
   const originalInteraction = autospinOriginals.get(modalInteraction.user.id) || modalInteraction;
   autospinOriginals.delete(modalInteraction.user.id);
 
+  // Parar collector antigo (se ainda estiver ativo)
   const oldCol = activeCollectors.get(modalInteraction.user.id);
   if (oldCol) oldCol.stop();
 

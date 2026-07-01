@@ -5,8 +5,8 @@ const { ui } = require('../utils/emojis');
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('saldo')
-    .setDescription('Verificar saldo de Créulas')
+    .setName('balance')
+    .setDescription('Check your Creulas balance')
     .addUserOption((option) =>
       option
         .setName('usuário')
