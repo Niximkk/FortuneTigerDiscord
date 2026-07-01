@@ -71,6 +71,7 @@ function getSymbolEmoji(symbol) {
 const autospinUsers = new Map();
 const autospinOriginals = new Map();
 const sessionStats = new Map();
+const activeCollectors = new Map();
 
 class DeletionTimer {
   constructor(interaction, buildComponents) {
@@ -292,6 +293,7 @@ async function animateFeature(interaction, bet, targetSymbolObj) {
 function setupResultCollector(interaction, userId, result, bet, minimized, minimizeTimeout, deleteTimer, session) {
   const reply = interaction.fetchReply().then((r) => {
     const collector = r.createMessageComponentCollector({ time: 60000 });
+    activeCollectors.set(userId, collector);
 
     collector.on('collect', async (btn) => {
       try {
@@ -327,7 +329,6 @@ function setupResultCollector(interaction, userId, result, bet, minimized, minim
             return;
           }
           autospinOriginals.set(userId, interaction);
-          collector.stop();
           const modal = new ModalBuilder()
             .setCustomId(`autospin_modal_${userId}_${bet}`)
             .setTitle('Rodadas Automáticas')
@@ -380,6 +381,7 @@ function setupResultCollector(interaction, userId, result, bet, minimized, minim
     });
 
     collector.on('end', () => {
+      activeCollectors.delete(userId);
       try {
         const { comps: dc } = buildMessageComponents(result, bet, db.getUser(userId).balance, true, undefined, minimized, undefined, undefined, session);
         interaction.editReply({ components: dc, flags: MessageFlags.IsComponentsV2 }).catch(() => {});
@@ -566,6 +568,9 @@ async function handleAutospinModal(modalInteraction) {
   const originalInteraction = autospinOriginals.get(modalInteraction.user.id) || modalInteraction;
   autospinOriginals.delete(modalInteraction.user.id);
 
+  const oldCol = activeCollectors.get(modalInteraction.user.id);
+  if (oldCol) oldCol.stop();
+
   autospinUsers.set(modalInteraction.user.id, true);
   await modalInteraction.deferUpdate();
   console.log(`[Auto] ${modalInteraction.user.tag} | Iniciado: ${count}x R$ ${bet}`);
@@ -624,6 +629,7 @@ module.exports = {
 
     const reply = await interaction.fetchReply();
     const lobbyCollector = reply.createMessageComponentCollector({ time: 120000 });
+    activeCollectors.set(userId, lobbyCollector);
 
     lobbyCollector.on('collect', async (btn) => {
       if (btn.user.id !== userId) {
@@ -700,7 +706,6 @@ module.exports = {
       if (id.startsWith('autospin_')) {
         const modalBet = parseFloat(id.replace('autospin_', ''));
         autospinOriginals.set(userId, interaction);
-        lobbyCollector.stop();
         const modal = new ModalBuilder()
           .setCustomId(`autospin_modal_${userId}_${modalBet}`)
           .setTitle('Rodadas Automáticas')
@@ -713,6 +718,7 @@ module.exports = {
     });
 
     lobbyCollector.on('end', () => {
+      activeCollectors.delete(userId);
       if (deleteTimer) deleteTimer.cancel();
       try {
         interaction.editReply({

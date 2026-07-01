@@ -1,12 +1,11 @@
 {
-  "currentVersion": "1.3.0",
+  "currentVersion": "1.3.1",
   "changelogs": [
     {
-      "version": "1.2.2",
-      "date": "2026-06-29",
-      "changed": [
-        "fullScreenMultiplier: 2x → 10x",
-        "featureBaseChance: 0.0066 → 0.00145 (RTP reajustado para ~95% com o novo multiplicador)"
+      "version": "1.3.1",
+      "date": "2026-06-30",
+      "fixed": [
+        "Autospin: clicar no botão e fechar o modal sem enviar não trava mais o slot (collector.stop() movido para o submit do modal)"
       ]
     },
     {
@@ -37,6 +36,14 @@
         "Balance exibido agora reflete o saldo após adicionar o win (não o saldo anterior)",
         "Bug no autospin: spin() fazia feature check interno (0.99%) mesmo no branch else, retornando grid com null cells e featureActive=false hardcoded → crash Cannot read properties of null (reading 'id') no pickGif",
         "Feature rate real era ~1.98% (double check) — agora é exatamente 0.99%"
+      ]
+    },
+    {
+      "version": "1.2.2",
+      "date": "2026-06-29",
+      "changed": [
+        "fullScreenMultiplier: 2x → 10x",
+        "featureBaseChance: 0.0066 → 0.00145 (RTP reajustado para ~95% com o novo multiplicador)"
       ]
     },
     {
