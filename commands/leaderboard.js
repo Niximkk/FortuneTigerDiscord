@@ -78,6 +78,7 @@ module.exports = {
     const replyRes = await interaction.reply({
       components: [buildContainer(currentPage), ...(totalPages > 1 ? [buildButtons(currentPage)] : [])],
       flags: MessageFlags.IsComponentsV2,
+      allowedMentions: { parse: [] },
       withResponse: true,
     });
     const reply = replyRes.resource.message;
@@ -98,11 +99,12 @@ module.exports = {
       await btn.update({
         components: [buildContainer(currentPage), buildButtons(currentPage)],
         flags: MessageFlags.IsComponentsV2,
+        allowedMentions: { parse: [] },
       });
     });
 
     collector.on('end', async () => {
-      try { await interaction.editReply({ components: [buildContainer(currentPage)], flags: MessageFlags.IsComponentsV2 }); } catch {}
+      try { await interaction.editReply({ components: [buildContainer(currentPage)], flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } }); } catch {}
     });
   },
 };
