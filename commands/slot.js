@@ -384,7 +384,12 @@ function setupResultCollector(interaction, userId, result, bet, minimized, minim
       activeCollectors.delete(userId);
       try {
         const { comps: dc } = buildMessageComponents(result, bet, db.getUser(userId).balance, true, undefined, minimized, undefined, undefined, session);
-        interaction.editReply({ components: dc, flags: MessageFlags.IsComponentsV2 }).catch(() => {});
+        interaction.editReply({ components: dc, flags: MessageFlags.IsComponentsV2 }).catch(() => {
+          interaction.fetchReply().then((m) => {
+            interaction.channel?.send({ content: '⏳ Sessão expirada, limpando...' }).catch(() => {});
+            m.delete().catch(() => {});
+          }).catch(() => {});
+        });
       } catch {}
     });
   }).catch(() => {});
@@ -725,7 +730,12 @@ module.exports = {
         interaction.editReply({
           components: buildLobbyComponents(lobbyGrid, currentBet, db.getUser(userId).balance, true, minimized),
           flags: MessageFlags.IsComponentsV2,
-        }).catch(() => {});
+        }).catch(() => {
+          interaction.fetchReply().then((m) => {
+            interaction.channel?.send({ content: '⏳ Sessão expirada, limpando...' }).catch(() => {});
+            m.delete().catch(() => {});
+          }).catch(() => {});
+        });
       } catch {}
     });
   },
