@@ -3,7 +3,7 @@
     "name": "Créulas",
     "symbol": "R$",
     "minBet": 0.5,
-    "maxBet": 1000,
+    "maxBet": 300000,
     "initialBalance": 0
   },
   "slot": {

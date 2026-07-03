@@ -1,13 +1,13 @@
 const config = require('../config.json');
 
 const SYMBOLS = [
-  { id: 'Wild', weight: 1, payout: 250 },
-  { id: 'ObjetosDourados', weight: 2, payout: 100 },
-  { id: 'SacoDeMoedas', weight: 4, payout: 10 },
-  { id: 'JoiasVerdes', weight: 6, payout: 25 },
-  { id: 'FogosDeArtificio', weight: 12, payout: 5 },
-  { id: 'CartasDeMoedas', weight: 28, payout: 8 },
-  { id: 'Laranja', weight: 38, payout: 3 },
+  { id: 'Wild', weight: 3, payout: 250 },
+  { id: 'ObjetosDourados', weight: 4, payout: 100 },
+  { id: 'SacoDeMoedas', weight: 5, payout: 10 },
+  { id: 'JoiasVerdes', weight: 7, payout: 25 },
+  { id: 'FogosDeArtificio', weight: 13, payout: 5 },
+  { id: 'CartasDeMoedas', weight: 27, payout: 8 },
+  { id: 'Laranja', weight: 36, payout: 3 },
 ];
 
 const PAYLINES = [
