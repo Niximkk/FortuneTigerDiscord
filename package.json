@@ -21,5 +21,6 @@
   "engines": {
     "node": ">=22.12.0"
   },
-  "private": true
+  "private": true,
+  "license": "PolyForm-Noncommercial-1.0.0"
 }

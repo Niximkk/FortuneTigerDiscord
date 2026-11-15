@@ -106,4 +106,8 @@ deploy-commands.js Registro dos comandos
 
 Projeto de entretenimento com moeda virtual, sem depósitos ou saques de dinheiro real. Não possui afiliação com a PG Soft.
 
-A posição contra monetização acima expressa a intenção do autor. Uma licença de distribuição ainda não foi adotada neste repositório; essa declaração não substitui os termos de uma licença. Marcas, imagens, áudios e dependências de terceiros continuam sujeitos aos direitos e licenças de seus respectivos titulares.
+O código é disponibilizado sob a [PolyForm Noncommercial License 1.0.0](LICENSE), que permite uso, modificação e distribuição para as finalidades autorizadas em seus termos, restringindo o uso comercial.
+
+A licença prevê permissões específicas para instituições educacionais, beneficentes, de pesquisa e outras organizações listadas no texto, independentemente de seu financiamento. A posição do autor contra monetização não altera essas permissões; prevalece o texto da licença.
+
+Marcas, imagens, áudios e dependências de terceiros continuam sujeitos aos direitos e licenças de seus respectivos titulares e não são relicenciados por este projeto.
