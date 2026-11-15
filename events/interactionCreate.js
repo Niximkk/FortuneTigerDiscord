@@ -10,7 +10,6 @@ module.exports = {
       console.log(`[Cmd] /${interaction.commandName} por ${tag} (${interaction.user.id})${opts ? ` | ${opts}` : ''}`);
     }
 
-    // Durante autospin: autospin → parar (remove do map); outros → shield
     if (interaction.isButton() && autospinUsers.has(interaction.user.id)) {
       if (interaction.customId.startsWith('autospin_')) {
         autospinUsers.delete(interaction.user.id);
@@ -18,12 +17,10 @@ module.exports = {
       return interaction.deferUpdate();
     }
 
-    // Modal do autospin
     if (interaction.isModalSubmit() && interaction.customId.startsWith('autospin_modal_')) {
       return handleAutospinModal(interaction);
     }
 
-    // Comandos slash
     if (interaction.isChatInputCommand()) {
       const command = interaction.client.commands.get(interaction.commandName);
       if (!command) {

@@ -21,6 +21,6 @@ module.exports = {
     };
 
     updateStatus();
-    setInterval(updateStatus, 15_000);
+    setInterval(updateStatus, 15_000).unref();
   },
 };

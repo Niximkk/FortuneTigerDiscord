@@ -6,196 +6,103 @@ const {
   VoiceConnectionStatus,
   entersState,
 } = require('@discordjs/voice');
-const path = require('path');
-const fs = require('fs');
+const path = require('node:path');
+const fs = require('node:fs');
 const config = require('../config.json');
 
 const activeConnections = new Map();
+const MAX_PLAYBACK_MS = 120_000;
 
-async function playBigWinSound(guild, voiceChannel) {
-  console.log('[Voice] playBigWinSound chamado para guild', guild.id, 'channel', voiceChannel.id);
+function audioPath(file) {
+  return path.resolve(__dirname, '..', file);
+}
 
-  if (activeConnections.has(guild.id)) {
-    console.log(`[Voice] Já tocando áudio no servidor ${guild.id}, ignorando.`);
-    return false;
+function stopAudio(handle) {
+  if (!handle || handle.closed) return;
+  handle.closed = true;
+  clearTimeout(handle.timeout);
+  handle.player.stop();
+  handle.subscription?.unsubscribe();
+  if (handle.connection.state.status !== VoiceConnectionStatus.Destroyed) {
+    handle.connection.destroy();
   }
-
-  const audioPath = path.resolve(config.audio.bigWinFile);
-  if (!fs.existsSync(audioPath)) {
-    console.log(`[Voice] Arquivo de áudio não encontrado: ${audioPath}`);
-    return false;
+  if (activeConnections.get(handle.guildId) === handle) {
+    activeConnections.delete(handle.guildId);
   }
+  handle.finish?.(false);
+}
+
+async function startAudio(guild, voiceChannel, file) {
+  const filePath = audioPath(file);
+  if (activeConnections.has(guild.id) || !fs.existsSync(filePath)) return null;
 
   const connection = joinVoiceChannel({
     channelId: voiceChannel.id,
     guildId: guild.id,
     adapterCreator: guild.voiceAdapterCreator,
-    selfDeaf: false,
+    selfDeaf: true,
   });
-
-  activeConnections.set(guild.id, connection);
-  console.log('[Voice] Conexão criada. Estado:', connection.state.status);
+  const handle = { guildId: guild.id, connection, player: createAudioPlayer(), closed: false };
+  activeConnections.set(guild.id, handle);
+  const onError = (error) => {
+    console.error('[Voice]', error.message);
+    stopAudio(handle);
+  };
+  connection.on('error', onError);
+  handle.player.on('error', onError);
+  connection.on(VoiceConnectionStatus.Disconnected, () => stopAudio(handle));
+  handle.player.on(AudioPlayerStatus.Idle, () => handle.finish?.(true));
 
   try {
     await entersState(connection, VoiceConnectionStatus.Ready, 15_000);
-    console.log('[Voice] Conexão está pronta!');
+    if (handle.closed) return null;
+    handle.subscription = connection.subscribe(handle.player);
+    handle.timeout = setTimeout(() => stopAudio(handle), MAX_PLAYBACK_MS);
+    handle.player.play(createAudioResource(filePath));
+    return handle;
   } catch (error) {
-    console.error('[Voice] Timeout ao aguardar conexão ficar pronta:', error.message);
-    connection.destroy();
-    activeConnections.delete(guild.id);
-    return false;
+    onError(error);
+    return null;
   }
+}
 
-  const player = createAudioPlayer();
-  const resource = createAudioResource(audioPath);
-  const subscription = connection.subscribe(player);
-  console.log('[Voice] Player inscrito na conexão');
-
-  player.play(resource);
-  console.log('[Voice] Player.play() chamado');
-
-  const fileSize = fs.statSync(audioPath).size;
-  const estimatedDuration = Math.max(30, Math.ceil((fileSize * 8) / 128 / 1000) + 10);
-  const timeoutMs = Math.min(estimatedDuration * 1000, 120_000);
-  console.log(`[Voice] Timeout configurado para ${timeoutMs}ms (estimado ${estimatedDuration}s)`);
-
-  let safetyTimeout;
-
+function waitForPlayback(handle) {
+  if (!handle || handle.closed) return Promise.resolve(false);
   return new Promise((resolve) => {
-    player.on(AudioPlayerStatus.Playing, () => {
-      console.log('[Voice] Áudio começou a tocar de fato');
-    });
-
-    player.on(AudioPlayerStatus.Idle, () => {
-      console.log('[Voice] Áudio terminou, limpando...');
-      clearTimeout(safetyTimeout);
-      subscription.unsubscribe();
-      connection.destroy();
-      activeConnections.delete(guild.id);
-      resolve(true);
-    });
-
-    player.on('error', (error) => {
-      console.error(`[Voice] Erro no player: ${error.message}`, error);
-      clearTimeout(safetyTimeout);
-      subscription.unsubscribe();
-      connection.destroy();
-      activeConnections.delete(guild.id);
-      resolve(false);
-    });
-
-    connection.on(VoiceConnectionStatus.Disconnected, async () => {
-      console.log('[Voice] Conexão desconectada durante reprodução');
-      clearTimeout(safetyTimeout);
-      try {
-        await Promise.race([
-          entersState(connection, VoiceConnectionStatus.Signing, 5_000),
-          entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
-        ]);
-      } catch {
-        connection.destroy();
-        activeConnections.delete(guild.id);
-        resolve(false);
-      }
-    });
-
-    connection.on('error', (error) => {
-      console.error(`[Voice] Erro na conexão: ${error.message}`);
-      clearTimeout(safetyTimeout);
-      connection.destroy();
-      activeConnections.delete(guild.id);
-      resolve(false);
-    });
-
-    safetyTimeout = setTimeout(() => {
-      const currentState = player.state.status;
-      console.log(`[Voice] Timeout de segurança - player ainda em "${currentState}". Forçando desconexão.`);
-      subscription.unsubscribe();
-      connection.destroy();
-      activeConnections.delete(guild.id);
-      resolve(currentState === AudioPlayerStatus.Playing);
-    }, timeoutMs);
+    handle.finish = (success) => {
+      handle.finish = null;
+      stopAudio(handle);
+      resolve(success);
+    };
+    if (handle.player.state.status === AudioPlayerStatus.Idle) handle.finish(true);
   });
 }
 
-async function startAudio(guild, voiceChannel, audioPath) {
-  if (!fs.existsSync(audioPath)) {
-    console.log(`[Voice] Arquivo não encontrado: ${audioPath}`);
-    return null;
-  }
-
-  const connection = joinVoiceChannel({
-    channelId: voiceChannel.id,
-    guildId: guild.id,
-    adapterCreator: guild.voiceAdapterCreator,
-    selfDeaf: false,
-  });
-
-  try {
-    await entersState(connection, VoiceConnectionStatus.Ready, 15_000);
-  } catch (error) {
-    console.error('[Voice] Timeout conexão:', error.message);
-    connection.destroy();
-    return null;
-  }
-
-  const player = createAudioPlayer();
-  const resource = createAudioResource(audioPath);
-  const subscription = connection.subscribe(player);
-  player.play(resource);
-
-  return { connection, player, subscription };
+async function playBigWinSound(guild, voiceChannel) {
+  return waitForPlayback(await startAudio(guild, voiceChannel, config.audio.bigWinFile));
 }
 
 async function playCardSong(guild, voiceChannel) {
-  const audioPath = path.resolve(config.audio.cardSongFile);
-  return startAudio(guild, voiceChannel, audioPath);
+  return startAudio(guild, voiceChannel, config.audio.cardSongFile);
 }
 
 async function switchToBigWin(handle) {
-  if (!handle) return false;
-  const audioPath = path.resolve(config.audio.bigWinFile);
-  if (!fs.existsSync(audioPath)) {
-    console.log('[Voice] big_win.mp3 não encontrado');
+  if (!handle || handle.closed) return false;
+  const filePath = audioPath(config.audio.bigWinFile);
+  if (!fs.existsSync(filePath)) {
+    stopAudio(handle);
     return false;
   }
-
-  const fileSize = fs.statSync(audioPath).size;
-  const estimatedDuration = Math.max(30, Math.ceil((fileSize * 8) / 128 / 1000) + 10);
-  const timeoutMs = Math.min(estimatedDuration * 1000, 120_000);
-
-  handle.player.stop();
-  handle.subscription.unsubscribe();
-
-  return new Promise((resolve) => {
-    const player = createAudioPlayer();
-    const resource = createAudioResource(audioPath);
-    const subscription = handle.connection.subscribe(player);
-    player.play(resource);
-
-    let safetyTimeout;
-
-    player.on(AudioPlayerStatus.Idle, () => {
-      clearTimeout(safetyTimeout);
-      subscription.unsubscribe();
-      handle.connection.destroy();
-      resolve(true);
-    });
-
-    player.on('error', (error) => {
-      console.error('[Voice] Erro switchToBigWin:', error.message);
-      clearTimeout(safetyTimeout);
-      subscription.unsubscribe();
-      handle.connection.destroy();
-      resolve(false);
-    });
-
-    safetyTimeout = setTimeout(() => {
-      subscription.unsubscribe();
-      handle.connection.destroy();
-      resolve(false);
-    }, timeoutMs);
-  });
+  try {
+    handle.player.play(createAudioResource(filePath));
+    clearTimeout(handle.timeout);
+    handle.timeout = setTimeout(() => stopAudio(handle), MAX_PLAYBACK_MS);
+    return waitForPlayback(handle);
+  } catch (error) {
+    console.error('[Voice]', error.message);
+    stopAudio(handle);
+    return false;
+  }
 }
 
-module.exports = { playBigWinSound, playCardSong, switchToBigWin };
+module.exports = { playBigWinSound, playCardSong, switchToBigWin, stopAudio };

@@ -5,12 +5,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends python3 build-e
 
 WORKDIR /app
 COPY package*.json ./
-RUN npm install --production && npm cache clean --force
+RUN npm ci --omit=dev && npm cache clean --force
 
 FROM node:22-slim
-
-RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg \
-    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY --from=builder /app/node_modules ./node_modules

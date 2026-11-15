@@ -13,7 +13,7 @@ const db = require('../database/db');
 const { spin, generateGrid, getRespinStates, evaluatePaylines, getWinningPositionsSet, pickTargetSymbol } = require('../utils/slot');
 const { emojis, ui } = require('../utils/emojis');
 const { formatCurrency } = require('../utils/format');
-const { playBigWinSound, playCardSong, switchToBigWin } = require('../utils/voice');
+const { playBigWinSound, playCardSong, switchToBigWin, stopAudio } = require('../utils/voice');
 const config = require('../config.json');
 
 const RESPIN_DELAY = 2500;
@@ -25,14 +25,7 @@ const TIPS = [
 ];
 function nextTip() { return `*${TIPS[Math.floor(Date.now() / 30000) % TIPS.length]}*`; }
 
-const GIF_URLS = {
-  'idle.gif': 'https://r2.e-z.host/4d0a0bea-60f8-44d6-9e74-3032a64a9f32/jkfl1hbp.gif',
-  'wild.gif': 'https://r2.e-z.host/4d0a0bea-60f8-44d6-9e74-3032a64a9f32/8k4c80wc.gif',
-  'throw_card.gif': 'https://r2.e-z.host/4d0a0bea-60f8-44d6-9e74-3032a64a9f32/e699clqp.gif',
-  'big_win.gif': 'https://r2.e-z.host/4d0a0bea-60f8-44d6-9e74-3032a64a9f32/pmsxmssj.gif',
-  'mega_win.gif': 'https://r2.e-z.host/4d0a0bea-60f8-44d6-9e74-3032a64a9f32/5wzfklzj.gif',
-  'super_mega_win.gif': 'https://r2.e-z.host/4d0a0bea-60f8-44d6-9e74-3032a64a9f32/z69alce0.gif',
-};
+const GIF_URLS = require('../assets/gifs/urls.json');
 
 function getGifUrl(name) { return GIF_URLS[name] || null; }
 
@@ -89,7 +82,7 @@ class DeletionTimer {
   async _warn() {
     if (this.cancelled) return;
     try {
-      const deleteAt = Math.floor(Date.now() / 1000) + 10;
+      const deleteAt = Math.floor(Date.now() / 1000) + 5;
       const comps = this.buildComponents(`**Fortune Tiger** ─ Apagando <t:${deleteAt}:R>`);
       await this.interaction.editReply({ components: comps, flags: MessageFlags.IsComponentsV2 });
     } catch {}
@@ -104,27 +97,6 @@ class DeletionTimer {
     if (this._warning) clearTimeout(this._warning);
     if (this._delete) clearTimeout(this._delete);
   }
-}
-
-async function showLoadingScreen(interaction) {
-  const ACCENT = 0xd2a838;
-  const container = new ContainerBuilder().setAccentColor(ACCENT);
-  container.addTextDisplayComponents((td) => td.setContent('<:777:1520875188797833267> **Carregando assets**'));
-  container.addSeparatorComponents((s) => s);
-  container.addMediaGalleryComponents((mg) =>
-    mg.addItems(
-      (item) => item.setURL(GIF_URLS['idle.gif']).setSpoiler(true),
-      (item) => item.setURL(GIF_URLS['wild.gif']).setSpoiler(true),
-      (item) => item.setURL(GIF_URLS['throw_card.gif']).setSpoiler(true),
-      (item) => item.setURL(GIF_URLS['big_win.gif']).setSpoiler(true),
-      (item) => item.setURL(GIF_URLS['mega_win.gif']).setSpoiler(true),
-      (item) => item.setURL(GIF_URLS['super_mega_win.gif']).setSpoiler(true),
-    )
-  );
-  container.addSeparatorComponents((s) => s);
-  container.addTextDisplayComponents((td) => td.setContent('Isso só vai levar um instante'));
-  await interaction.editReply({ components: [container], flags: MessageFlags.IsComponentsV2 });
-  await new Promise((r) => setTimeout(r, 2000));
 }
 
 function buildGridRows(grid, winPosSet, enabled) {
@@ -291,7 +263,7 @@ async function animateFeature(interaction, bet, targetSymbolObj) {
 }
 
 function setupResultCollector(interaction, userId, result, bet, minimized, minimizeTimeout, deleteTimer, session) {
-  const reply = interaction.fetchReply().then((r) => {
+  return interaction.fetchReply().then((r) => {
     const collector = r.createMessageComponentCollector({ time: 60000 });
     activeCollectors.set(userId, collector);
 
@@ -373,15 +345,18 @@ function setupResultCollector(interaction, userId, result, bet, minimized, minim
             return;
           }
           await btn.deferUpdate();
-          collector.stop();
+          collector.stop('next-spin');
           await handleSlotSpin(interaction, spinBet);
           return;
         }
       } catch {}
     });
 
-    collector.on('end', () => {
-      activeCollectors.delete(userId);
+    collector.on('end', (_, reason) => {
+      if (activeCollectors.get(userId) === collector) activeCollectors.delete(userId);
+      if (deleteTimer) deleteTimer.cancel();
+      if (minimizeTimeout) clearTimeout(minimizeTimeout);
+      if (reason === 'next-spin') return;
       try {
         const { comps: dc } = buildMessageComponents(result, bet, db.getUser(userId).balance, true, undefined, minimized, undefined, undefined, session);
         interaction.editReply({ components: dc, flags: MessageFlags.IsComponentsV2 }).catch(() => {
@@ -399,7 +374,7 @@ async function handleSlotSpin(interaction, bet, autospinRemaining) {
   const userId = interaction.user.id;
   const user = db.createUserIfNotExists(userId);
 
-  if (bet < config.currency.minBet || bet > config.currency.maxBet) {
+  if (!Number.isFinite(bet) || bet < config.currency.minBet || bet > config.currency.maxBet) {
     return interaction.editReply({ content: `Aposta deve ser entre ${formatCurrency(config.currency.minBet)} e ${formatCurrency(config.currency.maxBet)}.` });
   }
 
@@ -425,7 +400,13 @@ async function handleSlotSpin(interaction, bet, autospinRemaining) {
     } catch (err) {
       console.error(`[Slot] card_song erro: ${err.message}`);
     }
-    result = await animateFeature(interaction, bet, targetSymbol);
+    try {
+      result = await animateFeature(interaction, bet, targetSymbol);
+    } catch (error) {
+      stopAudio(featureAudioHandle);
+      db.updateBalance(userId, bet);
+      throw error;
+    }
     if (!result.winTier) result.winTier = getWinTier(result.totalWin, result.bet || bet);
   } else {
     const rawSpin = spin(bet);
@@ -503,9 +484,7 @@ async function handleSlotSpin(interaction, bet, autospinRemaining) {
 
   if (featureAudioHandle) {
     try {
-      featureAudioHandle.player.stop();
-      featureAudioHandle.subscription.unsubscribe();
-      featureAudioHandle.connection.destroy();
+      stopAudio(featureAudioHandle);
     } catch (err) {
       console.error('[Slot] Erro ao parar card_song:', err.message);
     }
@@ -519,17 +498,15 @@ async function handleSlotSpin(interaction, bet, autospinRemaining) {
     } catch {}
   }
 
-  // === Autospin loop ===
   if (isAuto) {
     console.log(`[Auto] ${tag} | ${autospinRemaining}/${autospinRemaining} restantes`);
     if (!autospinUsers.has(userId)) {
       console.log(`[Auto] ${tag} | Parado pelo usuário`);
-      // Parado pelo usuário: reabilita + setupResultCollector
       try {
         const { comps: nc } = buildMessageComponents(result, bet, db.getUser(userId).balance, false, undefined, minimized, undefined, balanceWarning, session);
         await interaction.editReply({ components: nc, flags: MessageFlags.IsComponentsV2 });
       } catch {}
-      return setupResultCollector(interaction, userId, result, bet, minimized, minimizeTimeout, null);
+      return setupResultCollector(interaction, userId, result, bet, minimized, minimizeTimeout, null, session);
     }
     if (autospinRemaining > 1) {
       console.log(`[Auto] ${tag} | ${autospinRemaining - 1} restantes`);
@@ -544,7 +521,6 @@ async function handleSlotSpin(interaction, bet, autospinRemaining) {
       }
       return handleSlotSpin(interaction, bet, autospinRemaining - 1);
     }
-    // Último giro do autospin
     autospinUsers.delete(userId);
     console.log(`[Auto] ${tag} | Concluído`);
     try {
@@ -553,7 +529,6 @@ async function handleSlotSpin(interaction, bet, autospinRemaining) {
     } catch {}
   }
 
-  // === Collector setup (single spin OU após autospin terminar) ===
   deleteTimer = new DeletionTimer(interaction, (title) =>
     buildMessageComponents(result, bet, db.getUser(userId).balance, false, undefined, minimized, title, undefined, session).comps
   );
@@ -564,18 +539,17 @@ async function handleSlotSpin(interaction, bet, autospinRemaining) {
 async function handleAutospinModal(modalInteraction) {
   const parts = modalInteraction.customId.split('_');
   const bet = parseFloat(parts[parts.length - 1]);
-  const count = parseInt(modalInteraction.fields.getTextInputValue('autospin_count'), 10);
+  const count = Number(modalInteraction.fields.getTextInputValue('autospin_count'));
 
-  if (isNaN(count) || count < 1 || count > 100) {
+  if (!Number.isInteger(count) || count < 1 || count > 100) {
     return modalInteraction.reply({ content: 'O número de rodadas deve ser entre 1 e 100.', ephemeral: true });
   }
 
   const originalInteraction = autospinOriginals.get(modalInteraction.user.id) || modalInteraction;
   autospinOriginals.delete(modalInteraction.user.id);
 
-  // Parar collector antigo (se ainda estiver ativo)
   const oldCol = activeCollectors.get(modalInteraction.user.id);
-  if (oldCol) oldCol.stop();
+  if (oldCol) oldCol.stop('next-spin');
 
   autospinUsers.set(modalInteraction.user.id, true);
   await modalInteraction.deferUpdate();
@@ -605,7 +579,6 @@ module.exports = {
     const bet = interaction.options.getNumber('aposta') || config.currency.minBet;
 
     await interaction.deferReply({ flags: MessageFlags.IsComponentsV2 });
-    await showLoadingScreen(interaction);
 
     let currentBet = Math.max(config.currency.minBet, Math.min(bet, config.currency.maxBet));
     let user = db.createUserIfNotExists(userId);
@@ -704,7 +677,7 @@ module.exports = {
           return;
         }
         await btn.deferUpdate();
-        lobbyCollector.stop();
+        lobbyCollector.stop('next-spin');
         await handleSlotSpin(interaction, spinBet);
         return;
       }
@@ -723,9 +696,11 @@ module.exports = {
       }
     });
 
-    lobbyCollector.on('end', () => {
-      activeCollectors.delete(userId);
+    lobbyCollector.on('end', (_, reason) => {
+      if (activeCollectors.get(userId) === lobbyCollector) activeCollectors.delete(userId);
       if (deleteTimer) deleteTimer.cancel();
+      if (minimizeTimeout) clearTimeout(minimizeTimeout);
+      if (reason === 'next-spin') return;
       try {
         interaction.editReply({
           components: buildLobbyComponents(lobbyGrid, currentBet, db.getUser(userId).balance, true, minimized),

@@ -1,10 +1,14 @@
 const Database = require('better-sqlite3');
 const path = require('path');
+const fs = require('fs');
+const config = require('../config.json');
 
 const dbPath = process.env.DB_PATH || path.resolve(__dirname, '..', 'database.sqlite');
 let db;
 
 function initDatabase() {
+  if (db) return db;
+  if (dbPath !== ':memory:') fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   db = new Database(dbPath);
   db.pragma('journal_mode = WAL');
 
@@ -18,9 +22,10 @@ function initDatabase() {
     )
   `);
 
-  try {
+  const columns = db.pragma('table_info(users)');
+  if (!columns.some((column) => column.name === 'muted')) {
     db.exec('ALTER TABLE users ADD COLUMN muted INTEGER NOT NULL DEFAULT 0');
-  } catch {}
+  }
 
   console.log(`[DB] Banco pronto: ${dbPath}`);
   return db;
@@ -40,16 +45,17 @@ function createUserIfNotExists(userId) {
   const existing = getUser(userId);
   if (existing) return existing;
   const stmt = getDb().prepare(
-    'INSERT INTO users (userId, balance) VALUES (?, 0)'
+    'INSERT INTO users (userId, balance) VALUES (?, ?)'
   );
-  stmt.run(userId);
+  stmt.run(userId, config.currency.initialBalance);
   console.log(`[DB] Novo usuário: ${userId}`);
   return getUser(userId);
 }
 
 function updateBalance(userId, amount) {
+  if (!Number.isFinite(amount)) throw new TypeError('Amount must be finite');
   const stmt = getDb().prepare(
-    'UPDATE users SET balance = balance + ? WHERE userId = ?'
+    'UPDATE users SET balance = ROUND(balance + ?, 2) WHERE userId = ?'
   );
   stmt.run(amount, userId);
   const newBal = getUser(userId).balance;

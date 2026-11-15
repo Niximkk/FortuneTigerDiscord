@@ -91,51 +91,6 @@ function getWinningPositionsSet(winningLines) {
   return posSet;
 }
 
-function performRespins(targetSymbol, maxRespins) {
-  const grid = [
-    [null, null, null],
-    [null, null, null],
-    [null, null, null],
-  ];
-
-  const fixed = [
-    [false, false, false],
-    [false, false, false],
-    [false, false, false],
-  ];
-
-  const { respinTargetChance, respinWildChance, minRespins } = config.slot;
-
-  let respinCount = 0;
-  let changed = true;
-
-  while ((changed || respinCount < minRespins) && respinCount < maxRespins) {
-    changed = false;
-    respinCount++;
-
-    for (let row = 0; row < 3; row++) {
-      for (let col = 0; col < 3; col++) {
-        if (fixed[row][col]) continue;
-
-        const roll = Math.random();
-        if (roll < respinTargetChance) {
-          grid[row][col] = targetSymbol;
-          fixed[row][col] = true;
-          changed = true;
-        } else if (roll < respinTargetChance + respinWildChance) {
-          const wild = SYMBOLS.find((s) => s.id === 'Wild');
-          grid[row][col] = wild;
-          fixed[row][col] = true;
-          changed = true;
-        }
-      }
-    }
-  }
-
-  const isFull = grid.every((row) => row.every((cell) => cell !== null));
-  return { grid, respinCount, isFull };
-}
-
 function getRespinStates(targetSymbol, maxRespins) {
   const states = [];
 
@@ -193,11 +148,6 @@ function getRespinStates(targetSymbol, maxRespins) {
     });
   }
 
-  if (states.length > 1 && states[states.length - 1].isFull) {
-    const last = states[states.length - 1];
-    states[states.length - 1] = { ...last, isFull: true };
-  }
-
   return states;
 }
 
@@ -225,5 +175,4 @@ module.exports = {
   generateGrid,
   pickTargetSymbol,
   getRespinStates,
-  performRespins,
 };

@@ -3,8 +3,12 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const { Client, Collection, GatewayIntentBits } = require('discord.js');
-const { initDatabase } = require('./database/db');
+const { initDatabase, closeDb } = require('./database/db');
 const { currentVersion } = require('./version.json');
+
+if (!process.env.DISCORD_TOKEN?.trim()) {
+  throw new Error('Defina DISCORD_TOKEN no arquivo .env.');
+}
 
 initDatabase();
 console.log(`[Bot] Iniciando v${currentVersion}...`);
@@ -12,9 +16,7 @@ console.log(`[Bot] Iniciando v${currentVersion}...`);
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
     GatewayIntentBits.GuildVoiceStates,
-    GatewayIntentBits.MessageContent,
   ],
 });
 
@@ -53,4 +55,18 @@ client.on('error', (err) => console.error('[Bot] Client error:', err.message));
 
 process.on('unhandledRejection', (err) => console.error('[Bot] Unhandled rejection:', err));
 
-client.login(process.env.DISCORD_TOKEN);
+function shutdown() {
+  client.destroy();
+  closeDb();
+  process.exit(0);
+}
+
+process.once('SIGINT', shutdown);
+process.once('SIGTERM', shutdown);
+
+client.login(process.env.DISCORD_TOKEN).catch((error) => {
+  console.error('[Bot] Falha ao conectar:', error.message);
+  client.destroy();
+  closeDb();
+  process.exitCode = 1;
+});

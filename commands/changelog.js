@@ -15,7 +15,6 @@ module.exports = {
     const ACCENT = 0xd2a838;
     const containers = [];
 
-    // Only the latest version
     const log = versionData.changelogs[0];
     if (!log) {
       return interaction.editReply({ content: 'Nenhum changelog disponível.', flags: MessageFlags.IsComponentsV2 });
